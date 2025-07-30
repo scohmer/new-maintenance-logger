@@ -1,0 +1,121 @@
+import tkinter as tk
+from tkinter import messagebox
+import requests
+from datetime import datetime
+import wmi
+from ldap3 import Server, Connection, ALL, SIMPLE
+from dotenv import load_dotenv
+import os
+
+# ───────────── Load Environment Variables ─────────────
+load_dotenv()
+
+# API server config
+SERVER_IP = os.getenv("API_SERVER_IP")
+SERVER_PORT = os.getenv("API_SERVER_PORT")
+SERVER_URL = f"http://{SERVER_IP}:{SERVER_PORT}/log"
+
+# LDAP connection config
+LDAP_SERVER = os.getenv("LDAP_SERVER")
+LDAP_USER = os.getenv("LDAP_USER")
+LDAP_PASSWORD = os.getenv("LDAP_PASSWORD")
+LDAP_BASE_DN = os.getenv("LDAP_BASE_DN")
+
+# ───────────── Validate Environment ─────────────
+missing_vars = [var for var in ["LDAP_SERVER", "LDAP_USER", "LDAP_PASSWORD", "LDAP_BASE_DN"]
+                if not os.getenv(var)]
+if missing_vars:
+    raise EnvironmentError(f"Missing required environment variables: {', '.join(missing_vars)}")
+
+# ───────────── Functions ─────────────
+
+def get_current_user():
+    """Get current Windows user via WMI"""
+    try:
+        c = wmi.WMI()
+        for session in c.Win32_ComputerSystem():
+            return session.UserName.split("\\")[-1]
+    except Exception:
+        return "unknown"
+
+def get_systems_from_ldap():
+    """Query LDAP for a list of computer names"""
+    try:
+        server = Server(LDAP_SERVER, get_info=ALL)
+        conn = Connection(
+            server,
+            user=LDAP_USER,
+            password=LDAP_PASSWORD,
+            authentication=SIMPLE,
+            auto_bind=True
+        )
+        conn.search(LDAP_BASE_DN, '(objectClass=computer)', attributes=['name'])
+        systems = sorted(
+            entry['attributes']['name']
+            for entry in conn.response
+            if 'attributes' in entry and 'name' in entry['attributes']
+        )
+        conn.unbind()
+        return systems
+    except Exception as e:
+        print("LDAP error:", e)
+        return []
+
+def submit_log():
+    """Submit form to server via POST"""
+    system = selected_system.get().strip()
+    action = text_action.get("1.0", tk.END).strip()
+    user = current_user
+
+    if not system or not action:
+        messagebox.showerror("Missing Info", "System and Action fields are required.")
+        return
+
+    payload = {
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "user": user,
+        "action": action,
+        "system": system
+    }
+
+    try:
+        response = requests.post(SERVER_URL, json=payload)
+        if response.status_code == 200:
+            messagebox.showinfo("Success", "✅ Log submitted successfully.")
+            text_action.delete("1.0", tk.END)
+        else:
+            messagebox.showerror("Error", f"❌ Server error:\n{response.text}")
+    except Exception as e:
+        messagebox.showerror("Connection Failed", f"❌ Could not connect to server:\n{e}")
+
+# ───────────── GUI Setup ─────────────
+
+root = tk.Tk()
+root.title("Maintenance Log Entry")
+root.geometry("400x320")
+
+current_user = get_current_user()
+
+tk.Label(root, text=f"User: {current_user}").pack(pady=(10, 0))
+
+tk.Label(root, text="System:").pack()
+
+system_list = get_systems_from_ldap()
+selected_system = tk.StringVar(root)
+
+if system_list:
+    selected_system.set(system_list[0])
+    system_dropdown = tk.OptionMenu(root, selected_system, *system_list)
+    system_dropdown.pack()
+else:
+    selected_system.set("Unavailable")
+    tk.Label(root, text="⚠️ No systems found in LDAP.").pack()
+
+tk.Label(root, text="Action:").pack()
+text_action = tk.Text(root, height=5, width=40)
+text_action.pack()
+
+tk.Button(root, text="Submit", command=submit_log).pack(pady=10)
+tk.Button(root, text="Exit", command=root.destroy).pack()
+
+root.mainloop()

@@ -13,3 +13,12 @@ LDAP_USER = "SEANCOHMER\\ldap_read"                  # Replace with AD bind acco
 LDAP_PASSWORD = 'Pa$$w0rd'                           # Replace with password  
 LDAP_BASE_DN = "DC=seancohmer,DC=com"                # Replace with your domain base DN  
 ```
+# Server Interface
+Here is a screenshot of the server interface:  
+
+![Server Interface](screenshots/server-interface.png)
+
+# Client Interface
+Here is a screenshot of the client interface:
+
+![Client Interface](screenshots/client-interface.png)

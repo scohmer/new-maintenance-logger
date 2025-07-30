@@ -1,7 +1,8 @@
 python -m venv venv
 .\venv\Scripts\activate.bat
-pip install --no-index --find-links=.\client-depends -r .\client-requirements.txt
-pyinstaller -F --add-data=".env;." .\client.py
+# run this: pip install --no-index --find-links=.\client-depends -r .\client-requirements.txt
+# customize .env file
+# run this: pyinstaller -F --add-data=".env;." .\client.py
 
 # FOR SERVER
 # python -m venv .venv

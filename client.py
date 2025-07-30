@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import ttk, messagebox
 import requests
 from datetime import datetime
 from ldap3 import Server, Connection, ALL, SIMPLE
@@ -28,7 +28,6 @@ if missing_vars:
 # ───────────── Functions ─────────────
 
 def get_current_user():
-    """Get DOMAIN\\Username from environment variables"""
     try:
         domain = os.environ.get("USERDOMAIN", "")
         user = os.environ.get("USERNAME", "")
@@ -37,7 +36,6 @@ def get_current_user():
         return "unknown"
 
 def get_systems_from_ldap():
-    """Query LDAP for a list of computer names"""
     try:
         server = Server(LDAP_SERVER, get_info=ALL)
         conn = Connection(
@@ -60,17 +58,25 @@ def get_systems_from_ldap():
         return []
 
 def submit_log():
-    """Submit form to server via POST"""
-    system = selected_system.get().strip()
+    manual_input = manual_system.get().strip()
+    system = manual_input if manual_input else selected_system.get().strip()
     action = text_action.get("1.0", tk.END).strip()
     user = current_user
 
-    if not system or not action:
-        messagebox.showerror("Missing Info", "System and Action fields are required.")
+    if not system:
+        messagebox.showerror("Missing Info", "System name is required.")
         return
 
+    if not action:
+        messagebox.showerror("Missing Info", "Action field cannot be blank.")
+        text_action.focus_set()
+        text_action.config(highlightbackground="red", highlightcolor="red", highlightthickness=2)
+        return
+    else:
+        text_action.config(highlightthickness=0)
+
     payload = {
-        "timestamp": datetime.now().astimezone().isoformat(),  # local time (EST if system is set to it)
+        "timestamp": datetime.now().astimezone().isoformat(),
         "user": user,
         "action": action,
         "system": system
@@ -81,6 +87,9 @@ def submit_log():
         if response.status_code == 200:
             messagebox.showinfo("Success", "✅ Log submitted successfully.")
             text_action.delete("1.0", tk.END)
+            manual_system.set("")
+            text_action.focus_set()
+            text_action.config(highlightthickness=0)
         else:
             messagebox.showerror("Error", f"❌ Server error:\n{response.text}")
     except Exception as e:
@@ -90,30 +99,60 @@ def submit_log():
 
 root = tk.Tk()
 root.title("Maintenance Log Entry")
-root.geometry("400x320")
+root.geometry("460x440")
+root.resizable(False, False)
+
+style = ttk.Style()
+style.theme_use("clam")
+style.configure("TButton", padding=6, font=("Segoe UI", 10))
+style.configure("TLabel", font=("Segoe UI", 10))
+style.configure("TEntry", font=("Segoe UI", 10))
+
+frame = ttk.Frame(root, padding=20)
+frame.pack(fill="both", expand=True)
 
 current_user = get_current_user()
+ttk.Label(frame, text=f"User: {current_user}").pack(anchor="w", pady=(0, 10))
 
-tk.Label(root, text=f"User: {current_user}").pack(pady=(10, 0))
-
-tk.Label(root, text="System:").pack()
+ttk.Label(frame, text="Select System:").pack(anchor="w")
 
 system_list = get_systems_from_ldap()
-selected_system = tk.StringVar(root)
+selected_system = tk.StringVar()
+manual_system = tk.StringVar()
 
 if system_list:
     selected_system.set(system_list[0])
-    system_dropdown = tk.OptionMenu(root, selected_system, *system_list)
-    system_dropdown.pack()
+    dropdown = ttk.OptionMenu(frame, selected_system, system_list[0], *system_list)
+    dropdown.pack(fill="x", pady=(0, 10))
 else:
     selected_system.set("Unavailable")
-    tk.Label(root, text="⚠️ No systems found in LDAP.").pack()
+    ttk.Label(frame, text="⚠️ No systems found in LDAP.").pack()
 
-tk.Label(root, text="Action:").pack()
-text_action = tk.Text(root, height=5, width=40)
-text_action.pack()
+ttk.Label(frame, text="(or enter a system name manually):").pack(anchor="w")
+entry = ttk.Entry(frame, textvariable=manual_system)
+entry.pack(fill="x", pady=(0, 15))
 
-tk.Button(root, text="Submit", command=submit_log).pack(pady=10)
-tk.Button(root, text="Exit", command=root.destroy).pack()
+ttk.Label(frame, text="Action:").pack(anchor="w")
+text_action = tk.Text(frame, height=6, font=("Segoe UI", 10), wrap="word", highlightthickness=0, relief="solid")
+text_action.pack(fill="both", pady=(0, 15))
+
+# Allow Ctrl+Enter to submit from Action box
+def on_ctrl_enter(event):
+    submit_log()
+    return "break"
+
+text_action.bind("<Control-Return>", on_ctrl_enter)
+
+# Button area
+button_frame = ttk.Frame(frame)
+button_frame.pack(pady=5)
+
+submit_btn = ttk.Button(button_frame, text="Submit", command=submit_log)
+submit_btn.pack(side="left", padx=(0, 10))
+
+exit_btn = ttk.Button(button_frame, text="Exit", command=root.destroy)
+exit_btn.pack(side="left")
+
+entry.focus_set()
 
 root.mainloop()

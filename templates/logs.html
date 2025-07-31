@@ -149,7 +149,12 @@
     </style>
 </head>
 <body>
+<div style="display: flex; justify-content: space-between; align-items: center;">
     <h1>Maintenance Logs</h1>
+    <form method="get" action="/log">
+        <button type="submit" style="padding: 6px 12px;">🧹 Clear Filters</button>
+    </form>
+</div>
 
     <div class="top-controls">
         <button class="hamburger" onclick="toggleFilter()">☰ Filters</button>

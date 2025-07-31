@@ -2,7 +2,6 @@ import tkinter as tk
 from tkinter import messagebox
 import requests
 from datetime import datetime
-import wmi
 from ldap3 import Server, Connection, ALL, SIMPLE
 from dotenv import load_dotenv
 import os
@@ -22,19 +21,18 @@ LDAP_PASSWORD = os.getenv("LDAP_PASSWORD")
 LDAP_BASE_DN = os.getenv("LDAP_BASE_DN")
 
 # ───────────── Validate Environment ─────────────
-missing_vars = [var for var in ["LDAP_SERVER", "LDAP_USER", "LDAP_PASSWORD", "LDAP_BASE_DN"]
-                if not os.getenv(var)]
+missing_vars = [var for var in ["LDAP_SERVER", "LDAP_USER", "LDAP_PASSWORD", "LDAP_BASE_DN"] if not os.getenv(var)]
 if missing_vars:
     raise EnvironmentError(f"Missing required environment variables: {', '.join(missing_vars)}")
 
 # ───────────── Functions ─────────────
 
 def get_current_user():
-    """Get current Windows user via WMI"""
+    """Get DOMAIN\\Username from environment variables"""
     try:
-        c = wmi.WMI()
-        for session in c.Win32_ComputerSystem():
-            return session.UserName.split("\\")[-1]
+        domain = os.environ.get("USERDOMAIN", "")
+        user = os.environ.get("USERNAME", "")
+        return f"{domain}\\{user}" if domain else user
     except Exception:
         return "unknown"
 
@@ -72,7 +70,7 @@ def submit_log():
         return
 
     payload = {
-        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "timestamp": datetime.now().astimezone().isoformat(),  # local time (EST if system is set to it)
         "user": user,
         "action": action,
         "system": system

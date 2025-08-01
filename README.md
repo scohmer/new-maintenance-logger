@@ -22,3 +22,7 @@ Here is a screenshot of the server interface:
 Here is a screenshot of the client interface:
 
 ![Client Interface](screenshots/client-interface.png)
+
+# Note: Cleanup required
+
+I'm aware that there's a bit of cleanup necessary.

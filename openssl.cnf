@@ -1,0 +1,22 @@
+[ req ]
+default_bits       = 2048
+prompt             = no
+default_md         = sha256
+distinguished_name = req_distinguished_name
+req_extensions     = req_ext
+
+[ req_distinguished_name ]
+C  = US
+ST = Ohio
+L  = Cincinnati
+O  = SeanCohmer
+OU = IT
+CN = redhat.seancohmer.com
+
+[ req_ext ]
+subjectAltName = @alt_names
+
+[ alt_names ]
+DNS.1 = maintenancelogs.seancohmer.com
+DNS.2 = maintenancelogs
+IP.1  = 192.168.0.90

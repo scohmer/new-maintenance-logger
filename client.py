@@ -12,7 +12,7 @@ load_dotenv()
 # API server config
 SERVER_IP = os.getenv("API_SERVER_IP")
 SERVER_PORT = os.getenv("API_SERVER_PORT")
-SERVER_URL = f"http://{SERVER_IP}:{SERVER_PORT}/log"
+SERVER_URL = f"https://{SERVER_IP}:{SERVER_PORT}/log"
 
 # LDAP connection config
 LDAP_SERVER = os.getenv("LDAP_SERVER")

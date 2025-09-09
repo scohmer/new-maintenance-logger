@@ -1,0 +1,86 @@
+services:
+  maintenance-logger:
+    build: .
+    container_name: maintenance-logger-server
+    restart: unless-stopped
+    volumes:
+      # Persist database
+      - ./data:/app/data
+    environment:
+      - PYTHONUNBUFFERED=1
+      - TZ=America/New_York
+    networks:
+      - maintenance-logger-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/log', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Nginx reverse proxy (default service)
+  nginx:
+    image: nginx:alpine
+    container_name: maintenance-logger-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      # Uncomment for HTTPS:
+      # - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      # Uncomment for TLS certificates:
+      # - ./tls:/etc/ssl/certs:ro
+    depends_on:
+      - maintenance-logger
+    networks:
+      - maintenance-logger-network
+
+  # Example HTTPS-enabled nginx service (uncomment and use instead of above)
+  # nginx-https:
+  #   image: nginx:alpine
+  #   container_name: maintenance-logger-nginx-https
+  #   restart: unless-stopped
+  #   ports:
+  #     - "80:80"   # HTTP (for redirects)
+  #     - "443:443" # HTTPS
+  #   volumes:
+  #     - ./nginx-https.conf:/etc/nginx/conf.d/default.conf:ro
+  #     - ./tls:/etc/ssl/certs:ro
+  #   depends_on:
+  #     - maintenance-logger
+  #   networks:
+  #     - maintenance-logger-network
+  #   profiles:
+  #     - https
+
+  # Direct access service (alternative to nginx)
+  maintenance-logger-direct:
+    build: .
+    container_name: maintenance-logger-server-direct
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - PYTHONUNBUFFERED=1
+      - TZ=America/New_York
+    networks:
+      - maintenance-logger-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/log', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    profiles:
+      - direct
+
+networks:
+  maintenance-logger-network:
+    driver: bridge
+
+volumes:
+  maintenance-data:
+    driver: local

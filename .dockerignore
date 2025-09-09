@@ -1,0 +1,64 @@
+# Version control
+.git
+.gitignore
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+.coverage
+.pytest_cache/
+*.egg-info/
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation
+README.md
+screenshots/
+
+# Client-side files (not needed for server container)
+client.py
+client.spec
+client-*.txt
+client-depends/
+create-exe.bat
+
+# Server dependencies (using pyproject.toml instead)
+server-requirements.txt
+server-depends/
+
+# Database (will be mounted as volume)
+*.db
+
+# Certificates (will be mounted as volume)
+*.crt
+*.key
+*.csr
+*.pem
+tls/
+
+# Build files
+*.log
+*.tmp
+
+# Docker files (avoid recursion)
+Dockerfile
+.dockerignore
+docker-compose.yml
